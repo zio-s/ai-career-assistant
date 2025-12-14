@@ -55,7 +55,7 @@ export function Sidebar({ user }: SidebarProps) {
     <aside className="fixed left-0 top-0 h-full w-64 bg-card border-r border-border flex flex-col">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-border">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" prefetch={false} className="flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-accent" />
           <span className="font-bold text-lg">AI 커리어</span>
         </Link>
@@ -72,6 +72,7 @@ export function Sidebar({ user }: SidebarProps) {
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  prefetch={false}
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                     isActive
@@ -92,6 +93,7 @@ export function Sidebar({ user }: SidebarProps) {
       <div className="p-3 border-t border-border">
         <Link
           href="/settings"
+          prefetch={false}
           className={cn(
             'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
             pathname === '/settings'
