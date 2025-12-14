@@ -341,7 +341,7 @@ export default function NewResumePage() {
                   type="text"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  placeholder="예: 2024 프론트엔드 이력서"
+                  placeholder="예: 2026 프론트엔드 이력서"
                   className="w-full h-12 px-4 bg-white border border-[#E8E2D9] rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-all"
                 />
               </div>

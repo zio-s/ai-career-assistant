@@ -1,11 +1,13 @@
 /**
  * 이력서 CRUD API
+ * 개인정보 암호화 적용
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/lib/database.types';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 async function createSupabaseServer() {
   const cookieStore = await cookies();
@@ -51,7 +53,13 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data });
+    // 암호화된 필드 복호화
+    const decryptedData = data?.map(item => ({
+      ...item,
+      raw_text: item.raw_text ? decrypt(item.raw_text) : item.raw_text,
+    }));
+
+    return NextResponse.json({ success: true, data: decryptedData });
   } catch (error) {
     console.error('Resumes fetch error:', error);
     return NextResponse.json(
@@ -98,13 +106,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 민감 데이터 암호화
     const { data, error } = await supabase
       .from('resumes')
       .insert({
         user_id: user.id,
         title,
         content,
-        raw_text: rawText,
+        raw_text: rawText ? encrypt(rawText) : null,
         file_url: fileUrl,
         analysis_result: analysisResult,
       })
@@ -116,7 +125,13 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    return NextResponse.json({ success: true, data });
+    // 응답 시 복호화
+    const decryptedData = {
+      ...data,
+      raw_text: data.raw_text ? decrypt(data.raw_text) : data.raw_text,
+    };
+
+    return NextResponse.json({ success: true, data: decryptedData });
   } catch (error) {
     console.error('Resume create error:', error);
     // 상세 에러 메시지 포함

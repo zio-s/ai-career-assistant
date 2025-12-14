@@ -1,11 +1,16 @@
 /**
  * 자소서 CRUD API
+ * 개인정보 암호화 적용
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/lib/database.types';
+import { encrypt, decrypt } from '@/lib/crypto';
+
+// 암호화할 필드 목록
+const ENCRYPTED_FIELDS = ['content', 'company_name', 'job_position', 'job_description'] as const;
 
 async function createSupabaseServer() {
   const cookieStore = await cookies();
@@ -51,7 +56,16 @@ export async function GET() {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data });
+    // 암호화된 필드 복호화
+    const decryptedData = data?.map(item => ({
+      ...item,
+      content: item.content ? decrypt(item.content) : item.content,
+      company_name: item.company_name ? decrypt(item.company_name) : item.company_name,
+      job_position: item.job_position ? decrypt(item.job_position) : item.job_position,
+      job_description: item.job_description ? decrypt(item.job_description) : item.job_description,
+    }));
+
+    return NextResponse.json({ success: true, data: decryptedData });
   } catch (error) {
     console.error('Cover letters fetch error:', error);
     return NextResponse.json(
@@ -81,15 +95,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 민감 데이터 암호화
     const { data, error } = await supabase
       .from('cover_letters')
       .insert({
         user_id: user.id,
         title,
-        company_name: companyName,
-        job_position: jobPosition,
-        job_description: jobDescription,
-        content,
+        company_name: companyName ? encrypt(companyName) : null,
+        job_position: jobPosition ? encrypt(jobPosition) : null,
+        job_description: jobDescription ? encrypt(jobDescription) : null,
+        content: encrypt(content),
         ai_generated: aiGenerated ?? false,
         ai_provider: aiProvider,
         status: 'draft',
@@ -99,7 +114,16 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data });
+    // 응답 시 복호화된 데이터 반환
+    const decryptedData = {
+      ...data,
+      content: decrypt(data.content),
+      company_name: data.company_name ? decrypt(data.company_name) : null,
+      job_position: data.job_position ? decrypt(data.job_position) : null,
+      job_description: data.job_description ? decrypt(data.job_description) : null,
+    };
+
+    return NextResponse.json({ success: true, data: decryptedData });
   } catch (error) {
     console.error('Cover letter create error:', error);
     return NextResponse.json(

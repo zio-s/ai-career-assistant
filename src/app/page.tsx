@@ -235,7 +235,7 @@ export default function LandingPage() {
       <footer className="relative py-8 border-t border-[#E8E2D9]">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-[#94A3B8]">
-            © 2024 Career AI. Crafted with care by 변세민
+            © 2026 Career AI. Crafted with care by 변세민
           </p>
         </div>
       </footer>

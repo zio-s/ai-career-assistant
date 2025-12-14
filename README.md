@@ -78,6 +78,20 @@ ai-career-assistant/
 -- ai_usage_logs: AI 사용 로그
 ```
 
+## 보안 기능
+
+### 개인정보 암호화
+- **AES-256-GCM** 대칭키 암호화 알고리즘 적용
+- 자소서 내용, 회사명, 직무, 직무설명 암호화
+- 이력서 원문(raw_text) 암호화
+- 희망 직무(target_job) 암호화
+- scrypt 기반 키 파생으로 안전한 키 관리
+
+### 인증 및 접근 제어
+- Supabase Auth 기반 사용자 인증
+- Row Level Security(RLS)로 데이터 접근 제어
+- 모든 API에 인증 검증 적용
+
 ## 시작하기
 
 ### 1. 의존성 설치
@@ -88,7 +102,25 @@ yarn install
 
 ### 2. 환경 변수 설정
 
-`.env.local` 파일 생성 후 필요한 환경 변수 설정
+`.env.local` 파일 생성:
+
+```bash
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+# Google Gemini AI
+GEMINI_API_KEY=your-gemini-api-key
+
+# OpenAI (선택)
+OPENAI_API_KEY=your-openai-api-key
+
+# 개인정보 암호화 (필수 - 32자 이상 랜덤 문자열)
+ENCRYPTION_SECRET=your-encryption-secret-min-32-characters
+```
+
+**중요**: `ENCRYPTION_SECRET`은 32자 이상의 랜덤 문자열이어야 합니다.
+생성 예시: `openssl rand -base64 32`
 
 ### 3. 개발 서버 실행
 

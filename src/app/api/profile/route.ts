@@ -2,12 +2,14 @@
  * 프로필 API
  * GET: 현재 사용자 프로필 조회
  * PUT: 프로필 업데이트
+ * 개인정보 암호화 적용
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/lib/database.types';
+import { encrypt, decrypt } from '@/lib/crypto';
 
 async function createSupabaseServer() {
   const cookieStore = await cookies();
@@ -70,7 +72,13 @@ export async function GET() {
       throw error;
     }
 
-    return NextResponse.json({ success: true, data });
+    // 암호화된 필드 복호화
+    const decryptedData = {
+      ...data,
+      target_job: data.target_job ? decrypt(data.target_job) : data.target_job,
+    };
+
+    return NextResponse.json({ success: true, data: decryptedData });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: '프로필을 불러오는데 실패했습니다' },
@@ -97,11 +105,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: '이름은 필수입니다' }, { status: 400 });
     }
 
+    // 민감 데이터 암호화
     const { data, error } = await supabase
       .from('users')
       .update({
         name: name.trim(),
-        target_job,
+        target_job: target_job ? encrypt(target_job) : null,
         experience_level,
         preferred_ai,
         updated_at: new Date().toISOString(),
@@ -112,7 +121,13 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data });
+    // 응답 시 복호화
+    const decryptedData = {
+      ...data,
+      target_job: data.target_job ? decrypt(data.target_job) : data.target_job,
+    };
+
+    return NextResponse.json({ success: true, data: decryptedData });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: '프로필 저장에 실패했습니다' },
