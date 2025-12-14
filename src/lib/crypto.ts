@@ -15,8 +15,35 @@ const AUTH_TAG_LENGTH = 16; // 인증 태그 길이
 const SALT_LENGTH = 32; // 솔트 길이
 const KEY_LENGTH = 32; // AES-256 키 길이
 
+// 키 캐싱 설정
+const KEY_CACHE_MAX_SIZE = 100; // 최대 캐시 크기
+const keyCache = new Map<string, { key: Buffer; timestamp: number }>();
+const KEY_CACHE_TTL = 5 * 60 * 1000; // 5분 TTL
+
 /**
- * 암호화 키 생성 (환경 변수 + 솔트 기반)
+ * 캐시 정리 (오래된 항목 및 크기 초과 시)
+ */
+function cleanupCache(): void {
+  const now = Date.now();
+
+  // TTL 만료된 항목 제거
+  for (const [cacheKey, value] of keyCache.entries()) {
+    if (now - value.timestamp > KEY_CACHE_TTL) {
+      keyCache.delete(cacheKey);
+    }
+  }
+
+  // 크기 초과 시 가장 오래된 항목 제거
+  if (keyCache.size > KEY_CACHE_MAX_SIZE) {
+    const entries = Array.from(keyCache.entries());
+    entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const toDelete = entries.slice(0, entries.length - KEY_CACHE_MAX_SIZE);
+    toDelete.forEach(([key]) => keyCache.delete(key));
+  }
+}
+
+/**
+ * 암호화 키 생성 (환경 변수 + 솔트 기반, 캐싱 적용)
  */
 function deriveKey(salt: Buffer): Buffer {
   const secret = process.env.ENCRYPTION_SECRET;
@@ -25,7 +52,27 @@ function deriveKey(salt: Buffer): Buffer {
     throw new Error('ENCRYPTION_SECRET 환경 변수가 설정되지 않았습니다');
   }
 
-  return scryptSync(secret, salt, KEY_LENGTH);
+  // 캐시 키 생성 (salt의 base64)
+  const cacheKey = salt.toString('base64');
+
+  // 캐시에서 조회
+  const cached = keyCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < KEY_CACHE_TTL) {
+    return cached.key;
+  }
+
+  // 키 파생 (느린 작업)
+  const key = scryptSync(secret, salt, KEY_LENGTH);
+
+  // 캐시에 저장
+  keyCache.set(cacheKey, { key, timestamp: Date.now() });
+
+  // 주기적 캐시 정리
+  if (keyCache.size > KEY_CACHE_MAX_SIZE * 0.9) {
+    cleanupCache();
+  }
+
+  return key;
 }
 
 /**
