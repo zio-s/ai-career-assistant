@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { decrypt } from '@/lib/crypto';
 import {
   FileText,
   FileSearch,
@@ -55,12 +56,19 @@ export default async function DashboardPage() {
   };
 
   // 최근 활동 조회
-  const { data: recentCoverLetters } = await supabase
+  const { data: recentCoverLettersRaw } = await supabase
     .from('cover_letters')
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(3);
+
+  // 암호화된 필드 복호화
+  const recentCoverLetters = recentCoverLettersRaw?.map((letter) => ({
+    ...letter,
+    company_name: letter.company_name ? decrypt(letter.company_name) : letter.company_name,
+    job_position: letter.job_position ? decrypt(letter.job_position) : letter.job_position,
+  }));
 
   return (
     <div className="space-y-8">
